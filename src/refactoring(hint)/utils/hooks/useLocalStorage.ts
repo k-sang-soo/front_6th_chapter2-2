@@ -8,8 +8,9 @@
 // 반환값: [저장된 값, 값 설정 함수]
 
 export function useLocalStorage<T>(
-  key: string,
-  initialValue: T
+  _key: string,
+  _initialValue: T
 ): [T, (value: T | ((val: T) => T)) => void] {
   // TODO: 구현
+  return [_initialValue, () => {}]; // 임시 반환값
 }

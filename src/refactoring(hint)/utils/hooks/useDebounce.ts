@@ -6,6 +6,7 @@
 //
 // 사용 예시: 검색어 입력 디바운싱
 
-export function useDebounce<T>(value: T, delay: number): T {
+export function useDebounce<T>(_value: T, _delay: number): T {
   // TODO: 구현
+  return _value; // 임시 반환값
 }
