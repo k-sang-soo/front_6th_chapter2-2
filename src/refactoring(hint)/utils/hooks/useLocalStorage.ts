@@ -9,7 +9,7 @@
 
 export function useLocalStorage<T>(
   _key: string,
-  _initialValue: T
+  _initialValue: T,
 ): [T, (value: T | ((val: T) => T)) => void] {
   // TODO: 구현
   return [_initialValue, () => {}]; // 임시 반환값

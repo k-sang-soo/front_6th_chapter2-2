@@ -7,7 +7,7 @@ import tsParser from '@typescript-eslint/parser';
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', 'src/**/__tests__/**']
+    ignores: ['dist/**', 'node_modules/**', 'src/**/__tests__/**'],
   },
   js.configs.recommended,
   {
@@ -20,27 +20,27 @@ export default [
         ecmaVersion: 'latest',
         sourceType: 'module',
         ecmaFeatures: {
-          jsx: true
-        }
-      }
+          jsx: true,
+        },
+      },
     },
     plugins: {
       '@typescript-eslint': tseslint,
       'react-hooks': reactHooks,
-      'react-refresh': reactRefresh
+      'react-refresh': reactRefresh,
     },
     rules: {
       ...tseslint.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       // 프로젝트에 맞게 조정된 룰들
-      '@typescript-eslint/no-unused-vars': ['error', { 
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_'
-      }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
       '@typescript-eslint/explicit-function-return-type': 'off', // 힌트 파일은 TODO 상태라 끔
       'prefer-const': 'error',
       'no-var': 'error',
@@ -50,13 +50,13 @@ export default [
         'warn',
         {
           selector: 'variable',
-          format: ['camelCase', 'PascalCase', 'UPPER_CASE']
+          format: ['camelCase', 'PascalCase', 'UPPER_CASE'],
         },
         {
           selector: 'function',
-          format: ['camelCase', 'PascalCase'] // React 컴포넌트 허용
-        }
-      ]
-    }
-  }
+          format: ['camelCase', 'PascalCase'], // React 컴포넌트 허용
+        },
+      ],
+    },
+  },
 ];
