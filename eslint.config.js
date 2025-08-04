@@ -41,7 +41,15 @@ export default [
           varsIgnorePattern: '^_',
         },
       ],
-      '@typescript-eslint/explicit-function-return-type': 'off', // 힌트 파일은 TODO 상태라 끔
+      '@typescript-eslint/explicit-function-return-type': [
+        'warn',
+        {
+          allowExpressions: true,           // (x) => x * 2 허용
+          allowTypedFunctionExpressions: true, // const fn: Handler = () => {} 허용
+          allowHigherOrderFunctions: true,     // HOC 허용
+          allowDirectConstAssertionInArrowFunctions: true
+        }
+      ],
       'prefer-const': 'error',
       'no-var': 'error',
       'no-undef': 'off', // TypeScript가 처리하므로 끔
