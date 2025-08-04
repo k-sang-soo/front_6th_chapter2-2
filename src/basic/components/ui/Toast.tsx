@@ -1,3 +1,5 @@
+import { CloseIcon } from '../icons';
+
 export interface Notification {
   id: string;
   message: string;
@@ -29,14 +31,7 @@ const Toast = ({ notifications, onRemove }: ToastProps) => {
         >
           <span className="mr-2">{notif.message}</span>
           <button onClick={() => onRemove(notif.id)} className="text-white hover:text-gray-200">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <CloseIcon />
           </button>
         </div>
       ))}
