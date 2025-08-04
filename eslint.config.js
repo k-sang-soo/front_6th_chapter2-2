@@ -4,6 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
+import prettierConfig from 'eslint-config-prettier';
 
 export default [
   {
@@ -67,4 +68,6 @@ export default [
       ],
     },
   },
+  // Prettier와 충돌하는 formatting 규칙들을 비활성화
+  prettierConfig,
 ];
