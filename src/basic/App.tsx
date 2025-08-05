@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { CartItem, Coupon, Product, ToastType } from '../types';
+import { CartItem, Coupon, ToastType } from '../types';
 import { initialCoupons, initialProducts, ProductWithUI } from './constants';
 import Toast, { Notification } from './components/ui/Toast.tsx';
 import AdminPage from './components/AdminPage.tsx';
@@ -42,13 +42,9 @@ const App = () => {
     return initialCoupons;
   });
 
-  const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-
-  const updatePageMode = (value: boolean) => {
-    setIsAdmin(value);
-  };
 
   const handleAddCoupon = (newCoupon: Coupon) => {
     const exists = coupons.find((c) => c.code === newCoupon.code);
@@ -60,68 +56,6 @@ const App = () => {
     return true;
   };
 
-  const getMaxApplicableDiscount = (item: CartItem): number => {
-    const { discounts } = item.product;
-    const { quantity } = item;
-
-    const baseDiscount = discounts.reduce((maxDiscount, discount) => {
-      return quantity >= discount.quantity && discount.rate > maxDiscount
-        ? discount.rate
-        : maxDiscount;
-    }, 0);
-
-    const hasBulkPurchase = cart.some((cartItem) => cartItem.quantity >= 10);
-    if (hasBulkPurchase) {
-      return Math.min(baseDiscount + 0.05, 0.5); // 대량 구매 시 추가 5% 할인
-    }
-
-    return baseDiscount;
-  };
-
-  const calculateItemTotal = (item: CartItem): number => {
-    const { price } = item.product;
-    const { quantity } = item;
-    const discount = getMaxApplicableDiscount(item);
-
-    return Math.round(price * quantity * (1 - discount));
-  };
-
-  const calculateCartTotal = (): {
-    totalBeforeDiscount: number;
-    totalAfterDiscount: number;
-  } => {
-    let totalBeforeDiscount = 0;
-    let totalAfterDiscount = 0;
-
-    cart.forEach((item) => {
-      const itemPrice = item.product.price * item.quantity;
-      totalBeforeDiscount += itemPrice;
-      totalAfterDiscount += calculateItemTotal(item);
-    });
-
-    if (selectedCoupon) {
-      if (selectedCoupon.discountType === 'amount') {
-        totalAfterDiscount = Math.max(0, totalAfterDiscount - selectedCoupon.discountValue);
-      } else {
-        totalAfterDiscount = Math.round(
-          totalAfterDiscount * (1 - selectedCoupon.discountValue / 100),
-        );
-      }
-    }
-
-    return {
-      totalBeforeDiscount: Math.round(totalBeforeDiscount),
-      totalAfterDiscount: Math.round(totalAfterDiscount),
-    };
-  };
-
-  const getRemainingStock = (product: Product): number => {
-    const cartItem = cart.find((item) => item.product.id === product.id);
-    const remaining = product.stock - (cartItem?.quantity || 0);
-
-    return remaining;
-  };
-
   const addNotification = useCallback((message: string, type: ToastType = 'success') => {
     const id = Date.now().toString();
     setNotifications((prev) => [...prev, { id, message, type }]);
@@ -130,13 +64,6 @@ const App = () => {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     }, 3000);
   }, []);
-
-  const [totalItemCount, setTotalItemCount] = useState(0);
-
-  useEffect(() => {
-    const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-    setTotalItemCount(count);
-  }, [cart]);
 
   useEffect(() => {
     localStorage.setItem('products', JSON.stringify(products));
@@ -153,89 +80,6 @@ const App = () => {
       localStorage.removeItem('cart');
     }
   }, [cart]);
-
-  const addToCart = useCallback(
-    (product: ProductWithUI) => {
-      const remainingStock = getRemainingStock(product);
-      if (remainingStock <= 0) {
-        addNotification('재고가 부족합니다!', 'error');
-        return;
-      }
-
-      setCart((prevCart) => {
-        const existingItem = prevCart.find((item) => item.product.id === product.id);
-
-        if (existingItem) {
-          const newQuantity = existingItem.quantity + 1;
-
-          if (newQuantity > product.stock) {
-            addNotification(`재고는 ${product.stock}개까지만 있습니다.`, 'error');
-            return prevCart;
-          }
-
-          return prevCart.map((item) =>
-            item.product.id === product.id ? { ...item, quantity: newQuantity } : item,
-          );
-        }
-
-        return [...prevCart, { product, quantity: 1 }];
-      });
-
-      addNotification('장바구니에 담았습니다', 'success');
-    },
-    [cart, addNotification, getRemainingStock],
-  );
-
-  const removeFromCart = useCallback((productId: string) => {
-    setCart((prevCart) => prevCart.filter((item) => item.product.id !== productId));
-  }, []);
-
-  const updateQuantity = useCallback(
-    (productId: string, newQuantity: number) => {
-      if (newQuantity <= 0) {
-        removeFromCart(productId);
-        return;
-      }
-
-      const product = products.find((p) => p.id === productId);
-      if (!product) return;
-
-      const maxStock = product.stock;
-      if (newQuantity > maxStock) {
-        addNotification(`재고는 ${maxStock}개까지만 있습니다.`, 'error');
-        return;
-      }
-
-      setCart((prevCart) =>
-        prevCart.map((item) =>
-          item.product.id === productId ? { ...item, quantity: newQuantity } : item,
-        ),
-      );
-    },
-    [products, removeFromCart, addNotification, getRemainingStock],
-  );
-
-  const applyCoupon = useCallback(
-    (coupon: Coupon) => {
-      const currentTotal = calculateCartTotal().totalAfterDiscount;
-
-      if (currentTotal < 10000 && coupon.discountType === 'percentage') {
-        addNotification('percentage 쿠폰은 10,000원 이상 구매 시 사용 가능합니다.', 'error');
-        return;
-      }
-
-      setSelectedCoupon(coupon);
-      addNotification('쿠폰이 적용되었습니다.', 'success');
-    },
-    [addNotification, calculateCartTotal],
-  );
-
-  const completeOrder = useCallback(() => {
-    const orderNumber = `ORD-${Date.now()}`;
-    addNotification(`주문이 완료되었습니다. 주문번호: ${orderNumber}`, 'success');
-    setCart([]);
-    setSelectedCoupon(null);
-  }, [addNotification]);
 
   const addProduct = useCallback(
     (newProduct: Omit<ProductWithUI, 'id'>) => {
@@ -278,8 +122,6 @@ const App = () => {
     [selectedCoupon, addNotification],
   );
 
-  const totals = calculateCartTotal();
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Toast
@@ -291,12 +133,14 @@ const App = () => {
         <AdminPage
           products={products}
           coupons={coupons}
+          cart={cart}
+          isAdmin={isAdmin}
           onAddProduct={addProduct}
           onUpdateProduct={updateProduct}
           onDeleteProduct={deleteProduct}
           onAddCoupon={handleAddCoupon}
           onDeleteCoupon={deleteCoupon}
-          onAdminModeChange={updatePageMode}
+          onAdminModeChange={setIsAdmin}
           onAddNotification={addNotification}
         />
       ) : (
@@ -304,7 +148,12 @@ const App = () => {
           products={products}
           cart={cart}
           coupons={coupons}
-          onAdminModeChange={updatePageMode}
+          selectedCoupon={selectedCoupon}
+          onSelectedCoupon={setSelectedCoupon}
+          isAdmin={isAdmin}
+          onUpdateCart={setCart}
+          onAdminModeChange={setIsAdmin}
+          onAddNotification={addNotification}
         />
       )}
     </div>

@@ -14,7 +14,12 @@ interface FormatPriceOptions {
 const formatters = {
   soldOut: () => 'SOLD OUT',
   admin: (price: number) => `${price.toLocaleString()}원`,
-  user: (price: number) => `₩${price.toLocaleString()}`,
+  user: (price: number) => {
+    return new Intl.NumberFormat('ko-KR', {
+      style: 'currency',
+      currency: 'KRW',
+    }).format(price);
+  },
 } as const;
 
 export const formatPrice = (price: number, options: FormatPriceOptions): string => {

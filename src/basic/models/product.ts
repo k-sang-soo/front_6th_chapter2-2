@@ -5,7 +5,7 @@ const getCartQuantityForProduct = (productId: string) => (cart: CartItem[]) =>
     .filter((item) => item.product.id === productId)
     .reduce((sum, item) => sum + item.quantity, 0);
 
-const getRemainingStock = (product: Product, cart: CartItem[]): number => {
+export const getRemainingStock = (product: Product, cart: CartItem[]): number => {
   const getQuantity = getCartQuantityForProduct(product.id);
   return product.stock - getQuantity(cart);
 };
