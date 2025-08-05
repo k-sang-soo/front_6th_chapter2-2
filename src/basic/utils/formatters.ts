@@ -5,3 +5,20 @@
 // - formatPercentage(rate: number): string - 소수를 퍼센트로 변환 (0.1 → 10%)
 
 // TODO: 구현
+
+interface FormatPriceOptions {
+  isAdmin: boolean;
+  isSoldOut: boolean;
+}
+
+const formatters = {
+  soldOut: () => 'SOLD OUT',
+  admin: (price: number) => `${price.toLocaleString()}원`,
+  user: (price: number) => `₩${price.toLocaleString()}`,
+} as const;
+
+export const formatPrice = (price: number, options: FormatPriceOptions): string => {
+  const { isAdmin, isSoldOut } = options;
+
+  return isSoldOut ? formatters.soldOut() : formatters[isAdmin ? 'admin' : 'user'](price);
+};
