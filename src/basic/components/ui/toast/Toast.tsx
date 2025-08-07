@@ -1,4 +1,4 @@
-import { CloseIcon } from '../icons';
+import { CloseIcon } from '../../icons';
 
 export interface Notification {
   id: string;
