@@ -25,64 +25,78 @@
 // - clearCart: 장바구니 비우기 함수
 
 import { useLocalStorage } from '../utils/hooks/useLocalStorage.ts';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ProductWithUI } from '../constants';
 import { addItemToCart, removeItemFromCart, updateCartItemQuantity } from '../models/cart.ts';
-import { CartItem, Coupon } from '../../types.ts';
+import { CartItem, Coupon, OperationResult } from '../../types.ts';
 
-export function useCart() {
+export function useCart(): {
+  cart: CartItem[];
+  selectedCoupon: Coupon | null;
+  addToCart: (product: ProductWithUI) => OperationResult;
+  removeFromCart: (productId: string) => OperationResult;
+  updateQuantity: (
+    products: ProductWithUI[],
+    productId: string,
+    newQuantity: number,
+  ) => OperationResult;
+  clearSelectedCoupon: (couponCode: string) => void;
+  clearCart: () => void;
+  applyCoupon: (coupon: Coupon | null) => void;
+} {
   const [cart, setCart] = useLocalStorage<CartItem[]>('cart', []);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
 
-  useEffect(() => {
-    if (cart.length > 0) {
-      localStorage.setItem('cart', JSON.stringify(cart));
-    } else {
-      localStorage.removeItem('cart');
-    }
-  }, [cart]);
-
   const addToCart = useCallback(
-    (product: ProductWithUI) => {
-      const { success, error, cart: newCart } = addItemToCart(cart, product);
+    (product: ProductWithUI): OperationResult => {
+      const result = addItemToCart(cart, product);
 
-      if (success) {
-        setCart(newCart!);
-        return { success };
-        // onAddNotification(result.success.message, 'success');
+      if (result.data?.cart) {
+        setCart(result.data.cart);
       }
 
-      if (error) {
-        return { error };
+      if (result.success) {
+        return { success: result.success };
       }
 
-      // onAddNotification(result.error.message, 'error');
+      return { error: result.error! };
     },
     [cart, setCart],
   );
 
-  const removeFromCart = (productId: string) => {
-    const { cart: newCart } = removeItemFromCart(cart, productId);
-    setCart(newCart);
-  };
+  const removeFromCart = useCallback(
+    (productId: string): OperationResult => {
+      const result = removeItemFromCart(cart, productId);
 
-  const updateQuantity = (products: ProductWithUI[], productId: string, newQuantity: number) => {
-    const {
-      success,
-      error,
-      cart: newCart,
-    } = updateCartItemQuantity(cart, products, productId, newQuantity);
+      if (result.data?.cart) {
+        setCart(result.data.cart);
+      }
 
-    if (success) {
-      setCart(newCart!);
-      return { success };
-    }
+      if (result.success) {
+        return { success: result.success };
+      }
 
-    if (error) {
-      return { error };
-      // onAddNotification(result.error.message, 'error');
-    }
-  };
+      return { error: result.error! };
+    },
+    [cart, setCart],
+  );
+
+  const updateQuantity = useCallback(
+    (products: ProductWithUI[], productId: string, newQuantity: number): OperationResult => {
+      const result = updateCartItemQuantity(cart, products, productId, newQuantity);
+
+      if (result.data?.cart) {
+        setCart(result.data.cart);
+      }
+
+      if (result.success) {
+        return { success: result.success };
+      }
+
+      return { error: result.error! };
+    },
+    [cart, setCart],
+  );
 
   const clearSelectedCoupon = useCallback(
     (couponCode: string) => {
@@ -93,13 +107,23 @@ export function useCart() {
     [selectedCoupon],
   );
 
+  const clearCart = useCallback(() => {
+    setCart([]);
+    setSelectedCoupon(null);
+  }, [setCart]);
+
+  const applyCoupon = useCallback((coupon: Coupon | null) => {
+    setSelectedCoupon(coupon);
+  }, []);
+
   return {
     cart,
     selectedCoupon,
     addToCart,
     removeFromCart,
     updateQuantity,
-    clearCart: () => setCart([]),
+    clearCart,
+    applyCoupon,
     clearSelectedCoupon,
   };
 }

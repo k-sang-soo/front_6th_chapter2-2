@@ -17,7 +17,7 @@
 
 // TODO: 구현
 
-import { CartItem, Coupon } from '../../types.ts';
+import { CartItem, CartOperationResult, Coupon, OperationResult } from '../../types.ts';
 import { ProductWithUI } from '../constants';
 import { isSoldOut } from './product.ts';
 
@@ -79,15 +79,18 @@ export const calculateCartTotal = (
   };
 };
 
-export const addItemToCart = (cart: CartItem[], product: ProductWithUI) => {
+export const addItemToCart = (
+  cart: CartItem[],
+  product: ProductWithUI,
+): OperationResult<{ cart: CartItem[] }> => {
   const soldOut = isSoldOut(product, cart);
   if (soldOut) {
     return {
-      success: false,
       error: {
         type: 'INSUFFICIENT_STOCK',
         message: '재고가 부족합니다!',
       },
+      data: { cart },
     };
   }
 
@@ -100,19 +103,18 @@ export const addItemToCart = (cart: CartItem[], product: ProductWithUI) => {
         type: 'ADDED_TO_CART',
         message: '장바구니에 담았습니다',
       },
-      error: false,
-      cart: updatedCart,
+      data: { cart: updatedCart },
     };
   }
 
   const newQuantity = existingItem.quantity + 1;
   if (newQuantity > product.stock) {
     return {
-      success: false,
       error: {
         type: 'STOCK_LIMIT_EXCEEDED',
         message: `재고는 ${product.stock}개까지만 있습니다.`,
       },
+      data: { cart },
     };
   }
 
@@ -125,15 +127,18 @@ export const addItemToCart = (cart: CartItem[], product: ProductWithUI) => {
       type: 'ADDED_TO_CART',
       message: '장바구니에 담았습니다',
     },
-    error: false,
-    cart: updatedCart,
+    data: { cart: updatedCart },
   };
 };
 
-export const removeItemFromCart = (cart: CartItem[], productId: string) => {
+export const removeItemFromCart = (cart: CartItem[], productId: string): CartOperationResult => {
   const updatedCart = cart.filter((item) => item.product.id !== productId);
   return {
-    cart: updatedCart,
+    success: {
+      type: 'ITEM_REMOVED',
+      message: '상품이 제거되었습니다.',
+    },
+    data: { cart: updatedCart },
   };
 };
 
@@ -142,31 +147,37 @@ export const updateCartItemQuantity = (
   products: ProductWithUI[],
   productId: string,
   newQuantity: number,
-) => {
+): CartOperationResult => {
   if (newQuantity <= 0) {
     const result = removeItemFromCart(cart, productId);
     return {
-      success: true,
-      cart: result.cart,
+      success: {
+        type: 'QUANTITY_UPDATED',
+        message: '수량이 변경되었습니다.',
+      },
+      data: { cart: result.data!.cart },
     };
   }
 
   const product = products.find((p) => p.id === productId);
   if (!product) {
     return {
-      success: true,
-      cart,
+      success: {
+        type: 'QUANTITY_UPDATED',
+        message: '수량이 변경되었습니다.',
+      },
+      data: { cart },
     };
   }
 
   const maxStock = product.stock;
   if (newQuantity > maxStock) {
     return {
-      success: false,
       error: {
         type: 'STOCK_LIMIT_EXCEEDED',
         message: `재고는 ${maxStock}개까지만 있습니다.`,
       },
+      data: { cart },
     };
   }
 
@@ -175,7 +186,10 @@ export const updateCartItemQuantity = (
   );
 
   return {
-    success: true,
-    cart: updatedCart,
+    success: {
+      type: 'QUANTITY_UPDATED',
+      message: '수량이 변경되었습니다.',
+    },
+    data: { cart: updatedCart },
   };
 };
