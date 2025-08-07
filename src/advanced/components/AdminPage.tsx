@@ -18,15 +18,10 @@
 import { CloseIcon } from './icons';
 import { FormEvent, useCallback, useState } from 'react';
 import { ProductWithUI } from '../constants';
-import {
-  CartItem,
-  Coupon,
-  CouponOperationResult,
-  OperationResult,
-  ToastType,
-} from '../../types.ts';
+import { CartItem, Coupon, CouponOperationResult } from '../../types.ts';
 import { formatPrice } from '../utils/formatters.ts';
 import { isSoldOut } from '../models/product.ts';
+import { useNotifications } from '../hooks/useNotifications';
 
 interface AdminPageProps {
   products: ProductWithUI[];
@@ -39,8 +34,6 @@ interface AdminPageProps {
   onAddCoupon: (newCoupon: Coupon) => CouponOperationResult;
   onDeleteCoupon: (couponId: string) => void;
   onAdminModeChange: (isAdmin: boolean) => void;
-  onAddNotification: (message: string, type: ToastType) => void;
-  onShowNotification: (result: OperationResult) => void;
 }
 
 const AdminPage = ({
@@ -54,9 +47,8 @@ const AdminPage = ({
   onAddCoupon,
   onDeleteCoupon,
   onAdminModeChange,
-  onAddNotification,
-  onShowNotification,
 }: AdminPageProps) => {
+  const { addNotification, showNotifyFromResult } = useNotifications();
   const [activeTab, setActiveTab] = useState<'products' | 'coupons'>('products');
   const [showProductForm, setShowProductForm] = useState(false);
   const [showCouponForm, setShowCouponForm] = useState(false);
@@ -80,9 +72,9 @@ const AdminPage = ({
   const addCoupon = useCallback(
     (newCoupon: Coupon) => {
       const result = onAddCoupon(newCoupon);
-      onShowNotification(result);
+      showNotifyFromResult(result);
     },
-    [onAddCoupon, onShowNotification],
+    [onAddCoupon, showNotifyFromResult],
   );
 
   const handleCouponSubmit = (e: FormEvent) => {
@@ -316,7 +308,7 @@ const AdminPage = ({
                             if (value === '') {
                               setProductForm({ ...productForm, price: 0 });
                             } else if (parseInt(value) < 0) {
-                              onAddNotification('가격은 0보다 커야 합니다', 'error');
+                              addNotification('가격은 0보다 커야 합니다', 'error');
                               setProductForm({ ...productForm, price: 0 });
                             }
                           }}
@@ -344,10 +336,10 @@ const AdminPage = ({
                             if (value === '') {
                               setProductForm({ ...productForm, stock: 0 });
                             } else if (parseInt(value) < 0) {
-                              onAddNotification('재고는 0보다 커야 합니다', 'error');
+                              addNotification('재고는 0보다 커야 합니다', 'error');
                               setProductForm({ ...productForm, stock: 0 });
                             } else if (parseInt(value) > 9999) {
-                              onAddNotification('재고는 9999개를 초과할 수 없습니다', 'error');
+                              addNotification('재고는 9999개를 초과할 수 없습니다', 'error');
                               setProductForm({ ...productForm, stock: 9999 });
                             }
                           }}
@@ -592,14 +584,14 @@ const AdminPage = ({
                               const value = parseInt(e.target.value) || 0;
                               if (couponForm.discountType === 'percentage') {
                                 if (value > 100) {
-                                  onAddNotification('할인율은 100%를 초과할 수 없습니다', 'error');
+                                  addNotification('할인율은 100%를 초과할 수 없습니다', 'error');
                                   setCouponForm({ ...couponForm, discountValue: 100 });
                                 } else if (value < 0) {
                                   setCouponForm({ ...couponForm, discountValue: 0 });
                                 }
                               } else {
                                 if (value > 100000) {
-                                  onAddNotification(
+                                  addNotification(
                                     '할인 금액은 100,000원을 초과할 수 없습니다',
                                     'error',
                                   );

@@ -20,10 +20,11 @@ import { CartIcon, CloseIcon } from './icons';
 import { ProductWithUI } from '../constants';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearch } from '../utils/hooks/useSearch';
-import { CartItem, Coupon, OperationResult, ToastType } from '../../types.ts';
+import { CartItem, Coupon, OperationResult } from '../../types.ts';
 import { getRemainingStock, isSoldOut } from '../models/product.ts';
 import { formatPrice } from '../utils/formatters.ts';
 import { calculateCartTotal, calculateItemTotal } from '../models/cart.ts';
+import { useNotifications } from '../hooks/useNotifications';
 
 interface CartPageProps {
   products: ProductWithUI[];
@@ -42,8 +43,6 @@ interface CartPageProps {
     newQuantity: number,
   ) => OperationResult;
   onAdminModeChange: (isAdmin: boolean) => void;
-  onAddNotification: (message: string, type: ToastType) => void;
-  onShowNotification: (result: OperationResult) => void;
 }
 
 const CartPage = ({
@@ -59,9 +58,8 @@ const CartPage = ({
   onUpdateQuantity,
   onClearCart,
   onAdminModeChange,
-  onAddNotification,
-  onShowNotification,
 }: CartPageProps) => {
+  const { addNotification, showNotifyFromResult } = useNotifications();
   const { searchTerm, debouncedSearchTerm, setSearchTerm } = useSearch();
   const [totalItemCount, setTotalItemCount] = useState(0);
 
@@ -82,40 +80,40 @@ const CartPage = ({
   const handleAddToCart = useCallback(
     (productId: ProductWithUI) => {
       const result = onAddToCart(productId);
-      onShowNotification(result);
+      showNotifyFromResult(result);
     },
-    [onAddToCart, onShowNotification],
+    [onAddToCart, showNotifyFromResult],
   );
 
   const handleRemoveFromCart = useCallback(
     (productId: string) => {
       const result = onRemoveFromCart(productId);
-      onShowNotification(result);
+      showNotifyFromResult(result);
     },
-    [onRemoveFromCart, onShowNotification],
+    [onRemoveFromCart, showNotifyFromResult],
   );
 
   const handleUpdateQuantity = useCallback(
     (products: ProductWithUI[], productId: string, newQuantity: number) => {
       const result = onUpdateQuantity(products, productId, newQuantity);
-      onShowNotification(result);
+      showNotifyFromResult(result);
     },
-    [onShowNotification, onUpdateQuantity],
+    [showNotifyFromResult, onUpdateQuantity],
   );
 
   const handleApplyCoupon = useCallback(
     (coupon: Coupon | null) => {
       const result = onApplyCoupon(coupon);
-      onShowNotification(result);
+      showNotifyFromResult(result);
     },
-    [onApplyCoupon, onShowNotification],
+    [onApplyCoupon, showNotifyFromResult],
   );
 
   const completeOrder = useCallback(() => {
     const orderNumber = `ORD-${Date.now()}`;
-    onAddNotification(`주문이 완료되었습니다. 주문번호: ${orderNumber}`, 'success');
+    addNotification(`주문이 완료되었습니다. 주문번호: ${orderNumber}`, 'success');
     onClearCart();
-  }, [onAddNotification, onClearCart]);
+  }, [addNotification, onClearCart]);
 
   const totals = calculateCartTotal(cart, selectedCoupon);
 
