@@ -27,7 +27,12 @@
 import { useLocalStorage } from '../utils/hooks/useLocalStorage.ts';
 import { useCallback, useState } from 'react';
 import { ProductWithUI } from '../constants';
-import { addItemToCart, removeItemFromCart, updateCartItemQuantity } from '../models/cart.ts';
+import {
+  addItemToCart,
+  calculateCartTotal,
+  removeItemFromCart,
+  updateCartItemQuantity,
+} from '../models/cart.ts';
 import { CartItem, Coupon, OperationResult } from '../../types.ts';
 
 export function useCart(): {
@@ -42,7 +47,7 @@ export function useCart(): {
   ) => OperationResult;
   clearSelectedCoupon: (couponCode: string) => void;
   clearCart: () => void;
-  applyCoupon: (coupon: Coupon | null) => void;
+  applyCoupon: (coupon: Coupon | null) => OperationResult;
 } {
   const [cart, setCart] = useLocalStorage<CartItem[]>('cart', []);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
@@ -112,9 +117,30 @@ export function useCart(): {
     setSelectedCoupon(null);
   }, [setCart]);
 
-  const applyCoupon = useCallback((coupon: Coupon | null) => {
-    setSelectedCoupon(coupon);
-  }, []);
+  const applyCoupon = useCallback(
+    (coupon: Coupon | null): OperationResult => {
+      const currentTotal = calculateCartTotal(cart, selectedCoupon).totalAfterDiscount;
+
+      if (currentTotal < 10000 && coupon?.discountType === 'percentage') {
+        // onAddNotification('percentage 쿠폰은 10,000원 이상 구매 시 사용 가능합니다.', 'error');
+        return {
+          error: {
+            type: '',
+            message: 'percentage 쿠폰은 10,000원 이상 구매 시 사용 가능합니다.',
+          },
+        };
+      }
+
+      setSelectedCoupon(coupon);
+      return {
+        success: {
+          type: '',
+          message: '쿠폰이 적용되었습니다.',
+        },
+      };
+    },
+    [cart, selectedCoupon],
+  );
 
   return {
     cart,
