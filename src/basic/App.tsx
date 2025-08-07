@@ -24,11 +24,12 @@ const App = () => {
     onCouponDeleted: clearSelectedCoupon,
   });
   const { products, deleteProduct, updateProduct, addProduct } = useProducts();
-  const { notifications, showNotifyFromResult, hideNotification } = useNotifications();
+  const { notifications, addNotification, showNotifyFromResult, hideNotification } =
+    useNotifications();
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Toast notifications={notifications} onRemove={hideNotification} />
+      <Toast notifications={notifications} onHideNotification={hideNotification} />
 
       {isAdmin ? (
         <AdminPage
@@ -43,6 +44,7 @@ const App = () => {
           onDeleteCoupon={deleteCoupon}
           onAdminModeChange={setIsAdmin}
           onAddNotification={addNotification}
+          onShowNotification={showNotifyFromResult}
         />
       ) : (
         <CartPage
@@ -55,10 +57,11 @@ const App = () => {
           isAdmin={isAdmin}
           onAddToCart={addToCart}
           onRemoveFromCart={removeFromCart}
+          onClearCart={clearCart}
           onUpdateQuantity={updateQuantity}
           onAdminModeChange={setIsAdmin}
+          onAddNotification={addNotification}
           onShowNotification={showNotifyFromResult}
-          onClearCart={clearCart}
         />
       )}
     </div>

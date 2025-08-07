@@ -19,7 +19,7 @@
 import { CartIcon, CloseIcon } from './icons';
 import { ProductWithUI } from '../constants';
 import { useCallback, useEffect, useState } from 'react';
-import { CartItem, Coupon, OperationResult } from '../../types.ts';
+import { CartItem, Coupon, OperationResult, ToastType } from '../../types.ts';
 import { getRemainingStock, isSoldOut } from '../models/product.ts';
 import { formatPrice } from '../utils/formatters.ts';
 import { calculateCartTotal, calculateItemTotal } from '../models/cart.ts';
@@ -41,6 +41,7 @@ interface CartPageProps {
     newQuantity: number,
   ) => OperationResult;
   onAdminModeChange: (isAdmin: boolean) => void;
+  onAddNotification: (message: string, type: ToastType) => void;
   onShowNotification: (result: OperationResult) => void;
 }
 
@@ -57,6 +58,7 @@ const CartPage = ({
   onUpdateQuantity,
   onClearCart,
   onAdminModeChange,
+  onAddNotification,
   onShowNotification,
 }: CartPageProps) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -120,7 +122,7 @@ const CartPage = ({
     const orderNumber = `ORD-${Date.now()}`;
     onAddNotification(`주문이 완료되었습니다. 주문번호: ${orderNumber}`, 'success');
     onClearCart();
-  }, [onClearCart]);
+  }, [onAddNotification, onClearCart]);
 
   const totals = calculateCartTotal(cart, selectedCoupon);
 

@@ -18,7 +18,13 @@
 import { CloseIcon } from './icons';
 import { FormEvent, useCallback, useState } from 'react';
 import { ProductWithUI } from '../constants';
-import { CartItem, Coupon, CouponOperationResult, ToastType } from '../../types.ts';
+import {
+  CartItem,
+  Coupon,
+  CouponOperationResult,
+  OperationResult,
+  ToastType,
+} from '../../types.ts';
 import { formatPrice } from '../utils/formatters.ts';
 import { isSoldOut } from '../models/product.ts';
 
@@ -34,6 +40,7 @@ interface AdminPageProps {
   onDeleteCoupon: (couponId: string) => void;
   onAdminModeChange: (isAdmin: boolean) => void;
   onAddNotification: (message: string, type: ToastType) => void;
+  onShowNotification: (result: OperationResult) => void;
 }
 
 const AdminPage = ({
@@ -48,6 +55,7 @@ const AdminPage = ({
   onDeleteCoupon,
   onAdminModeChange,
   onAddNotification,
+  onShowNotification,
 }: AdminPageProps) => {
   const [activeTab, setActiveTab] = useState<'products' | 'coupons'>('products');
   const [showProductForm, setShowProductForm] = useState(false);
@@ -72,15 +80,9 @@ const AdminPage = ({
   const addCoupon = useCallback(
     (newCoupon: Coupon) => {
       const result = onAddCoupon(newCoupon);
-      if (result.success) {
-        onAddNotification(result.success.message, 'success');
-      }
-
-      if (result.error) {
-        onAddNotification(result.error.message, 'error');
-      }
+      onShowNotification(result);
     },
-    [onAddCoupon, onAddNotification],
+    [onAddCoupon, onShowNotification],
   );
 
   const handleCouponSubmit = (e: FormEvent) => {
