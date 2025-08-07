@@ -16,3 +16,161 @@
 // - 모든 필요한 데이터는 파라미터로 전달받음
 
 // TODO: 구현
+
+import { CartItem, Coupon } from '../../types.ts';
+import { ProductWithUI } from '../constants';
+import { isSoldOut } from './product.ts';
+
+export const calculateItemTotal = (item: CartItem, cart: CartItem[]): number => {
+  const { price } = item.product;
+  const { quantity } = item;
+  const discount = getMaxApplicableDiscount(item, cart);
+
+  return Math.round(price * quantity * (1 - discount));
+};
+
+export const getMaxApplicableDiscount = (item: CartItem, cart: CartItem[]): number => {
+  const { discounts } = item.product;
+  const { quantity } = item;
+
+  const baseDiscount = discounts.reduce((maxDiscount, discount) => {
+    return quantity >= discount.quantity && discount.rate > maxDiscount
+      ? discount.rate
+      : maxDiscount;
+  }, 0);
+
+  const hasBulkPurchase = cart.some((cartItem) => cartItem.quantity >= 10);
+  if (hasBulkPurchase) {
+    return Math.min(baseDiscount + 0.05, 0.5); // 대량 구매 시 추가 5% 할인
+  }
+
+  return baseDiscount;
+};
+
+export const calculateCartTotal = (
+  cart: CartItem[],
+  selectedCoupon: Coupon | null,
+): {
+  totalBeforeDiscount: number;
+  totalAfterDiscount: number;
+} => {
+  let totalBeforeDiscount = 0;
+  let totalAfterDiscount = 0;
+
+  cart.forEach((item) => {
+    const itemPrice = item.product.price * item.quantity;
+    totalBeforeDiscount += itemPrice;
+    totalAfterDiscount += calculateItemTotal(item, cart);
+  });
+
+  if (selectedCoupon) {
+    if (selectedCoupon.discountType === 'amount') {
+      totalAfterDiscount = Math.max(0, totalAfterDiscount - selectedCoupon.discountValue);
+    } else {
+      totalAfterDiscount = Math.round(
+        totalAfterDiscount * (1 - selectedCoupon.discountValue / 100),
+      );
+    }
+  }
+
+  return {
+    totalBeforeDiscount: Math.round(totalBeforeDiscount),
+    totalAfterDiscount: Math.round(totalAfterDiscount),
+  };
+};
+
+export const addItemToCart = (cart: CartItem[], product: ProductWithUI) => {
+  const soldOut = isSoldOut(product, cart);
+  if (soldOut) {
+    return {
+      cart,
+      error: {
+        type: 'INSUFFICIENT_STOCK',
+        message: '재고가 부족합니다!',
+      },
+    };
+  }
+
+  const existingItem = cart.find((item) => item.product.id === product.id);
+
+  if (!existingItem) {
+    const updatedCart = [...cart, { product, quantity: 1 }];
+    return {
+      success: {
+        type: 'ADDED_TO_CART',
+        message: '장바구니에 담았습니다',
+      },
+      cart: updatedCart,
+    };
+  }
+
+  const newQuantity = existingItem.quantity + 1;
+  if (newQuantity > product.stock) {
+    return {
+      cart,
+      error: {
+        type: 'STOCK_LIMIT_EXCEEDED',
+        message: `재고는 ${product.stock}개까지만 있습니다.`,
+      },
+    };
+  }
+
+  const updatedCart = cart.map((item) =>
+    item.product.id === product.id ? { ...item, quantity: newQuantity } : item,
+  );
+
+  return {
+    success: {
+      type: 'ADDED_TO_CART',
+      message: '장바구니에 담았습니다',
+    },
+    cart: updatedCart,
+  };
+};
+
+export const removeItemFromCart = (cart: CartItem[], productId: string) => {
+  const updatedCart = cart.filter((item) => item.product.id !== productId);
+  return {
+    cart: updatedCart,
+  };
+};
+
+export const updateCartItemQuantity = (
+  cart: CartItem[],
+  products: ProductWithUI[],
+  productId: string,
+  newQuantity: number,
+) => {
+  if (newQuantity <= 0) {
+    const result = removeItemFromCart(cart, productId);
+    return {
+      cart: result.cart,
+    };
+  }
+
+  const product = products.find((p) => p.id === productId);
+  if (!product) {
+    return {
+      cart,
+    };
+  }
+
+  const maxStock = product.stock;
+  if (newQuantity > maxStock) {
+    return {
+      cart,
+      error: {
+        type: 'STOCK_LIMIT_EXCEEDED',
+        message: `재고는 ${maxStock}개까지만 있습니다.`,
+      },
+    };
+  }
+
+  const updatedCart = cart.map((item) =>
+    item.product.id === productId ? { ...item, quantity: newQuantity } : item,
+  );
+
+  return {
+    cart: updatedCart,
+  };
+};
