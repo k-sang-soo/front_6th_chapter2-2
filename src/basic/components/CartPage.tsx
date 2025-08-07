@@ -19,6 +19,7 @@
 import { CartIcon, CloseIcon } from './icons';
 import { ProductWithUI } from '../constants';
 import { useCallback, useEffect, useState } from 'react';
+import { useSearch } from '../utils/hooks/useSearch';
 import { CartItem, Coupon, OperationResult, ToastType } from '../../types.ts';
 import { getRemainingStock, isSoldOut } from '../models/product.ts';
 import { formatPrice } from '../utils/formatters.ts';
@@ -61,16 +62,8 @@ const CartPage = ({
   onAddNotification,
   onShowNotification,
 }: CartPageProps) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const { searchTerm, debouncedSearchTerm, setSearchTerm } = useSearch();
   const [totalItemCount, setTotalItemCount] = useState(0);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
 
   useEffect(() => {
     const count = cart.reduce((sum, item) => sum + item.quantity, 0);
