@@ -8,10 +8,10 @@ export interface Notification {
 
 interface ToastProps {
   notifications: Notification[];
-  onRemove: (id: string) => void;
+  onHideNotification: (id: string) => void;
 }
 
-const Toast = ({ notifications, onRemove }: ToastProps) => {
+const Toast = ({ notifications, onHideNotification }: ToastProps) => {
   if (notifications.length === 0) {
     return null;
   }
@@ -30,7 +30,10 @@ const Toast = ({ notifications, onRemove }: ToastProps) => {
           }`}
         >
           <span className="mr-2">{notif.message}</span>
-          <button onClick={() => onRemove(notif.id)} className="text-white hover:text-gray-200">
+          <button
+            onClick={() => onHideNotification(notif.id)}
+            className="text-white hover:text-gray-200"
+          >
             <CloseIcon />
           </button>
         </div>

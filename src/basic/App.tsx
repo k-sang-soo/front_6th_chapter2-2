@@ -1,15 +1,14 @@
-import { useState, useCallback } from 'react';
-import { ToastType } from '../types';
+import { useState } from 'react';
 import AdminPage from './components/AdminPage.tsx';
 import CartPage from './components/CartPage.tsx';
-import Toast, { Notification } from './components/ui/toast/Toast.tsx';
+import Toast from './components/ui/toast/Toast.tsx';
 import { useCart } from './hooks/useCart.ts';
 import { useCoupons } from './hooks/useCoupons.ts';
 import { useProducts } from './hooks/useProducts.ts';
+import { useNotifications } from './hooks/useNotifications.ts';
 
 const App = () => {
   const [isAdmin, setIsAdmin] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const {
     cart,
@@ -25,22 +24,11 @@ const App = () => {
     onCouponDeleted: clearSelectedCoupon,
   });
   const { products, deleteProduct, updateProduct, addProduct } = useProducts();
-
-  const addNotification = useCallback((message: string, type: ToastType = 'success') => {
-    const id = Date.now().toString();
-    setNotifications((prev) => [...prev, { id, message, type }]);
-
-    setTimeout(() => {
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-    }, 3000);
-  }, []);
+  const { notifications, showNotifyFromResult, hideNotification } = useNotifications();
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Toast
-        notifications={notifications}
-        onRemove={(id) => setNotifications((prev) => prev.filter((n) => n.id !== id))}
-      />
+      <Toast notifications={notifications} onRemove={hideNotification} />
 
       {isAdmin ? (
         <AdminPage
@@ -69,7 +57,7 @@ const App = () => {
           onRemoveFromCart={removeFromCart}
           onUpdateQuantity={updateQuantity}
           onAdminModeChange={setIsAdmin}
-          onAddNotification={addNotification}
+          onShowNotification={showNotifyFromResult}
           onClearCart={clearCart}
         />
       )}

@@ -16,9 +16,9 @@
 // - CouponList: 쿠폰 목록 표시
 
 import { CloseIcon } from './icons';
-import { useCallback, useState } from 'react';
+import { FormEvent, useCallback, useState } from 'react';
 import { ProductWithUI } from '../constants';
-import { CartItem, Coupon, ToastType } from '../../types.ts';
+import { CartItem, Coupon, CouponOperationResult, ToastType } from '../../types.ts';
 import { formatPrice } from '../utils/formatters.ts';
 import { isSoldOut } from '../models/product.ts';
 
@@ -30,7 +30,7 @@ interface AdminPageProps {
   onAddProduct: (newProduct: Omit<ProductWithUI, 'id'>) => void;
   onUpdateProduct: (productId: string, updates: Partial<ProductWithUI>) => void;
   onDeleteProduct: (productId: string) => void;
-  onAddCoupon: (newCoupon: Coupon) => boolean;
+  onAddCoupon: (newCoupon: Coupon) => CouponOperationResult;
   onDeleteCoupon: (couponId: string) => void;
   onAdminModeChange: (isAdmin: boolean) => void;
   onAddNotification: (message: string, type: ToastType) => void;
@@ -71,18 +71,19 @@ const AdminPage = ({
 
   const addCoupon = useCallback(
     (newCoupon: Coupon) => {
-      const success = onAddCoupon(newCoupon);
-      if (success) {
-        onAddNotification('쿠폰이 추가되었습니다.', 'success');
-      } else {
-        onAddNotification('이미 존재하는 쿠폰 코드입니다.', 'error');
-        return;
+      const result = onAddCoupon(newCoupon);
+      if (result.success) {
+        onAddNotification(result.success.message, 'success');
+      }
+
+      if (result.error) {
+        onAddNotification(result.error.message, 'error');
       }
     },
     [onAddCoupon, onAddNotification],
   );
 
-  const handleCouponSubmit = (e: React.FormEvent) => {
+  const handleCouponSubmit = (e: FormEvent) => {
     e.preventDefault();
     addCoupon(couponForm);
     setCouponForm({
@@ -94,7 +95,7 @@ const AdminPage = ({
     setShowCouponForm(false);
   };
 
-  const handleProductSubmit = (e: React.FormEvent) => {
+  const handleProductSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (editingProduct && editingProduct !== 'new') {
       onUpdateProduct(editingProduct, productForm);
