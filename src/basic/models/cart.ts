@@ -83,7 +83,7 @@ export const addItemToCart = (cart: CartItem[], product: ProductWithUI) => {
   const soldOut = isSoldOut(product, cart);
   if (soldOut) {
     return {
-      cart,
+      success: false,
       error: {
         type: 'INSUFFICIENT_STOCK',
         message: '재고가 부족합니다!',
@@ -100,6 +100,7 @@ export const addItemToCart = (cart: CartItem[], product: ProductWithUI) => {
         type: 'ADDED_TO_CART',
         message: '장바구니에 담았습니다',
       },
+      error: false,
       cart: updatedCart,
     };
   }
@@ -107,7 +108,7 @@ export const addItemToCart = (cart: CartItem[], product: ProductWithUI) => {
   const newQuantity = existingItem.quantity + 1;
   if (newQuantity > product.stock) {
     return {
-      cart,
+      success: false,
       error: {
         type: 'STOCK_LIMIT_EXCEEDED',
         message: `재고는 ${product.stock}개까지만 있습니다.`,
@@ -124,6 +125,7 @@ export const addItemToCart = (cart: CartItem[], product: ProductWithUI) => {
       type: 'ADDED_TO_CART',
       message: '장바구니에 담았습니다',
     },
+    error: false,
     cart: updatedCart,
   };
 };
@@ -144,6 +146,7 @@ export const updateCartItemQuantity = (
   if (newQuantity <= 0) {
     const result = removeItemFromCart(cart, productId);
     return {
+      success: true,
       cart: result.cart,
     };
   }
@@ -151,6 +154,7 @@ export const updateCartItemQuantity = (
   const product = products.find((p) => p.id === productId);
   if (!product) {
     return {
+      success: true,
       cart,
     };
   }
@@ -158,7 +162,7 @@ export const updateCartItemQuantity = (
   const maxStock = product.stock;
   if (newQuantity > maxStock) {
     return {
-      cart,
+      success: false,
       error: {
         type: 'STOCK_LIMIT_EXCEEDED',
         message: `재고는 ${maxStock}개까지만 있습니다.`,
@@ -171,6 +175,7 @@ export const updateCartItemQuantity = (
   );
 
   return {
+    success: true,
     cart: updatedCart,
   };
 };
