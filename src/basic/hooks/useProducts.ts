@@ -38,7 +38,6 @@ export function useProducts() {
           message: '상품이 추가되었습니다.',
         },
       };
-      // addNotification('상품이 추가되었습니다.', 'success');
     },
     [setProducts],
   );
@@ -54,7 +53,6 @@ export function useProducts() {
           message: '상품이 수정되었습니다.',
         },
       };
-      // addNotification('상품이 수정되었습니다.', 'success');
     },
     [setProducts],
   );
@@ -68,7 +66,6 @@ export function useProducts() {
           message: '상품이 삭제되었습니다.',
         },
       };
-      // addNotification('상품이 삭제되었습니다.', 'success');
     },
     [setProducts],
   );
