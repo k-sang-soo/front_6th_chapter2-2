@@ -13,6 +13,73 @@
 // - addProductDiscount: 할인 규칙 추가
 // - removeProductDiscount: 할인 규칙 삭제
 
+import { useLocalStorage } from '../utils/hooks/useLocalStorage.ts';
+import { initialProducts, ProductWithUI } from '../constants';
+import { useCallback, useEffect } from 'react';
+
 export function useProducts() {
-  // TODO: 구현
+  const [products, setProducts] = useLocalStorage<ProductWithUI[]>('products', initialProducts);
+
+  useEffect(() => {
+    localStorage.setItem('products', JSON.stringify(products));
+  }, [products]);
+
+  const addProduct = useCallback(
+    (newProduct: Omit<ProductWithUI, 'id'>) => {
+      const product: ProductWithUI = {
+        ...newProduct,
+        id: `p${Date.now()}`,
+      };
+
+      setProducts((prev) => [...prev, product]);
+      return {
+        success: {
+          type: '',
+          message: '상품이 추가되었습니다.',
+        },
+      };
+      // addNotification('상품이 추가되었습니다.', 'success');
+    },
+    [setProducts],
+  );
+
+  const updateProduct = useCallback(
+    (productId: string, updates: Partial<ProductWithUI>) => {
+      setProducts((prev) =>
+        prev.map((product) => (product.id === productId ? { ...product, ...updates } : product)),
+      );
+      return {
+        success: {
+          type: '',
+          message: '상품이 수정되었습니다.',
+        },
+      };
+      // addNotification('상품이 수정되었습니다.', 'success');
+    },
+    [setProducts],
+  );
+
+  const deleteProduct = useCallback(
+    (productId: string) => {
+      setProducts((prev) => prev.filter((p) => p.id !== productId));
+      return {
+        success: {
+          type: '',
+          message: '상품이 삭제되었습니다.',
+        },
+      };
+      // addNotification('상품이 삭제되었습니다.', 'success');
+    },
+    [setProducts],
+  );
+
+  return {
+    products,
+    updateProduct,
+    addProduct,
+    deleteProduct,
+    updateProductStock: () => {},
+    addProductDiscount: () => {},
+    removeProductDiscount: () => {},
+  };
 }
