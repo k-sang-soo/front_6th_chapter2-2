@@ -1,60 +1,30 @@
-import { useState, useCallback, useEffect } from 'react';
-import { CartItem, Coupon, ToastType } from '../types';
-import { initialCoupons, initialProducts, ProductWithUI } from './constants';
-import Toast, { Notification } from './components/ui/Toast.tsx';
+import { useState, useCallback } from 'react';
+import { ToastType } from '../types';
 import AdminPage from './components/AdminPage.tsx';
 import CartPage from './components/CartPage.tsx';
+import Toast, { Notification } from './components/ui/toast/Toast.tsx';
+import { useCart } from './hooks/useCart.ts';
+import { useCoupons } from './hooks/useCoupons.ts';
+import { useProducts } from './hooks/useProducts.ts';
 
 const App = () => {
-  const [products, setProducts] = useState<ProductWithUI[]>(() => {
-    const saved = localStorage.getItem('products');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return initialProducts;
-      }
-    }
-    return initialProducts;
-  });
-
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('cart');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  });
-
-  const [coupons, setCoupons] = useState<Coupon[]>(() => {
-    const saved = localStorage.getItem('coupons');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return initialCoupons;
-      }
-    }
-    return initialCoupons;
-  });
-
   const [isAdmin, setIsAdmin] = useState(false);
-  const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  const handleAddCoupon = (newCoupon: Coupon) => {
-    const exists = coupons.find((c) => c.code === newCoupon.code);
-    if (exists) {
-      return false;
-    }
-
-    setCoupons((prev) => [...prev, newCoupon]);
-    return true;
-  };
+  const {
+    cart,
+    selectedCoupon,
+    clearSelectedCoupon,
+    clearCart,
+    applyCoupon,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+  } = useCart();
+  const { coupons, addCoupon, deleteCoupon } = useCoupons({
+    onCouponDeleted: clearSelectedCoupon,
+  });
+  const { products, deleteProduct, updateProduct, addProduct } = useProducts();
 
   const addNotification = useCallback((message: string, type: ToastType = 'success') => {
     const id = Date.now().toString();
@@ -64,63 +34,6 @@ const App = () => {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     }, 3000);
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('products', JSON.stringify(products));
-  }, [products]);
-
-  useEffect(() => {
-    localStorage.setItem('coupons', JSON.stringify(coupons));
-  }, [coupons]);
-
-  useEffect(() => {
-    if (cart.length > 0) {
-      localStorage.setItem('cart', JSON.stringify(cart));
-    } else {
-      localStorage.removeItem('cart');
-    }
-  }, [cart]);
-
-  const addProduct = useCallback(
-    (newProduct: Omit<ProductWithUI, 'id'>) => {
-      const product: ProductWithUI = {
-        ...newProduct,
-        id: `p${Date.now()}`,
-      };
-      setProducts((prev) => [...prev, product]);
-      addNotification('상품이 추가되었습니다.', 'success');
-    },
-    [addNotification],
-  );
-
-  const updateProduct = useCallback(
-    (productId: string, updates: Partial<ProductWithUI>) => {
-      setProducts((prev) =>
-        prev.map((product) => (product.id === productId ? { ...product, ...updates } : product)),
-      );
-      addNotification('상품이 수정되었습니다.', 'success');
-    },
-    [addNotification],
-  );
-
-  const deleteProduct = useCallback(
-    (productId: string) => {
-      setProducts((prev) => prev.filter((p) => p.id !== productId));
-      addNotification('상품이 삭제되었습니다.', 'success');
-    },
-    [addNotification],
-  );
-
-  const deleteCoupon = useCallback(
-    (couponCode: string) => {
-      setCoupons((prev) => prev.filter((c) => c.code !== couponCode));
-      if (selectedCoupon?.code === couponCode) {
-        setSelectedCoupon(null);
-      }
-      addNotification('쿠폰이 삭제되었습니다.', 'success');
-    },
-    [selectedCoupon, addNotification],
-  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -138,7 +51,7 @@ const App = () => {
           onAddProduct={addProduct}
           onUpdateProduct={updateProduct}
           onDeleteProduct={deleteProduct}
-          onAddCoupon={handleAddCoupon}
+          onAddCoupon={addCoupon}
           onDeleteCoupon={deleteCoupon}
           onAdminModeChange={setIsAdmin}
           onAddNotification={addNotification}
@@ -149,11 +62,15 @@ const App = () => {
           cart={cart}
           coupons={coupons}
           selectedCoupon={selectedCoupon}
-          onSelectedCoupon={setSelectedCoupon}
+          onApplyCoupon={applyCoupon}
+          onSelectedCoupon={applyCoupon}
           isAdmin={isAdmin}
-          onUpdateCart={setCart}
+          onAddToCart={addToCart}
+          onRemoveFromCart={removeFromCart}
+          onUpdateQuantity={updateQuantity}
           onAdminModeChange={setIsAdmin}
           onAddNotification={addNotification}
+          onClearCart={clearCart}
         />
       )}
     </div>

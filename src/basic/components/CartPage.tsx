@@ -19,16 +19,10 @@
 import { CartIcon, CloseIcon } from './icons';
 import { ProductWithUI } from '../constants';
 import { useCallback, useEffect, useState } from 'react';
-import { CartItem, Coupon, ToastType } from '../../types.ts';
+import { CartItem, Coupon, OperationResult, ToastType } from '../../types.ts';
 import { getRemainingStock, isSoldOut } from '../models/product.ts';
 import { formatPrice } from '../utils/formatters.ts';
-import {
-  addItemToCart,
-  calculateCartTotal,
-  calculateItemTotal,
-  removeItemFromCart,
-  updateCartItemQuantity,
-} from '../models/cart.ts';
+import { calculateCartTotal, calculateItemTotal } from '../models/cart.ts';
 
 interface CartPageProps {
   products: ProductWithUI[];
@@ -36,8 +30,16 @@ interface CartPageProps {
   coupons: Coupon[];
   selectedCoupon: Coupon | null;
   onSelectedCoupon: (coupon: Coupon | null) => void;
+  onApplyCoupon: (coupon: Coupon | null) => OperationResult;
   isAdmin: boolean;
-  onUpdateCart: (newCart: CartItem[]) => void;
+  onAddToCart: (product: ProductWithUI) => OperationResult;
+  onClearCart: () => void;
+  onRemoveFromCart: (productId: string) => OperationResult;
+  onUpdateQuantity: (
+    products: ProductWithUI[],
+    productId: string,
+    newQuantity: number,
+  ) => OperationResult;
   onAdminModeChange: (isAdmin: boolean) => void;
   onAddNotification: (message: string, type: ToastType) => void;
 }
@@ -49,7 +51,11 @@ const CartPage = ({
   isAdmin,
   selectedCoupon,
   onSelectedCoupon,
-  onUpdateCart,
+  onApplyCoupon,
+  onAddToCart,
+  onRemoveFromCart,
+  onUpdateQuantity,
+  onClearCart,
   onAdminModeChange,
   onAddNotification,
 }: CartPageProps) => {
@@ -78,67 +84,67 @@ const CartPage = ({
       )
     : products;
 
-  const addToCart = (cart: CartItem[], product: ProductWithUI) => {
-    const result = addItemToCart(cart, product);
-    if (!result) {
-      return;
-    }
-
-    if (result.error) {
-      onAddNotification(result.error.message, 'error');
-    }
-
-    if (result.success) {
-      onAddNotification(result.success.message, 'success');
-    }
-
-    onUpdateCart(result.cart);
-  };
-
-  const updateQuantity = (
-    cart: CartItem[],
-    products: ProductWithUI[],
-    productId: string,
-    newQuantity: number,
-  ) => {
-    const result = updateCartItemQuantity(cart, products, productId, newQuantity);
-
-    if (!result) {
-      return;
-    }
-
-    if (result?.error) {
-      onAddNotification(result.error.message, 'error');
-    }
-    onUpdateCart(result.cart);
-  };
-
-  const removeFromCart = (cart: CartItem[], productId: string) => {
-    const result = removeItemFromCart(cart, productId);
-    onUpdateCart(result.cart);
-  };
-
-  const applyCoupon = useCallback(
-    (cart: CartItem[], selectedCoupon: Coupon | null, coupon: Coupon) => {
-      const currentTotal = calculateCartTotal(cart, selectedCoupon).totalAfterDiscount;
-
-      if (currentTotal < 10000 && coupon.discountType === 'percentage') {
-        onAddNotification('percentage 쿠폰은 10,000원 이상 구매 시 사용 가능합니다.', 'error');
-        return;
+  const handleAddToCart = useCallback(
+    (productId: ProductWithUI) => {
+      const result = onAddToCart(productId);
+      if (result.success) {
+        onAddNotification(result.success.message, 'success');
       }
 
-      onSelectedCoupon(coupon);
-      onAddNotification('쿠폰이 적용되었습니다.', 'success');
+      if (result.error) {
+        onAddNotification(result.error.message, 'error');
+      }
     },
-    [onSelectedCoupon, onAddNotification],
+    [onAddNotification, onAddToCart],
+  );
+
+  const handleRemoveFromCart = useCallback(
+    (productId: string) => {
+      const result = onRemoveFromCart(productId);
+      if (result.success) {
+        onAddNotification(result.success.message, 'success');
+      }
+
+      if (result.error) {
+        onAddNotification(result.error.message, 'error');
+      }
+    },
+    [onAddNotification, onRemoveFromCart],
+  );
+
+  const handleUpdateQuantity = useCallback(
+    (products: ProductWithUI[], productId: string, newQuantity: number) => {
+      const result = onUpdateQuantity(products, productId, newQuantity);
+      if (result.success) {
+        onAddNotification(result.success.message, 'success');
+      }
+
+      if (result.error) {
+        onAddNotification(result.error.message, 'error');
+      }
+    },
+    [onAddNotification, onUpdateQuantity],
+  );
+
+  const handleApplyCoupon = useCallback(
+    (coupon: Coupon | null) => {
+      const result = onApplyCoupon(coupon);
+      if (result.success) {
+        onAddNotification(result.success.message, 'success');
+      }
+
+      if (result.error) {
+        onAddNotification(result.error.message, 'error');
+      }
+    },
+    [onAddNotification, onApplyCoupon],
   );
 
   const completeOrder = useCallback(() => {
     const orderNumber = `ORD-${Date.now()}`;
     onAddNotification(`주문이 완료되었습니다. 주문번호: ${orderNumber}`, 'success');
-    onUpdateCart([]);
-    onSelectedCoupon(null);
-  }, [onAddNotification, onSelectedCoupon, onUpdateCart]);
+    onClearCart();
+  }, [onClearCart, onAddNotification]);
 
   const totals = calculateCartTotal(cart, selectedCoupon);
 
@@ -272,7 +278,7 @@ const CartPage = ({
 
                           {/* 장바구니 버튼 */}
                           <button
-                            onClick={() => addToCart(cart, product)}
+                            onClick={() => handleAddToCart(product)}
                             disabled={remainingStock <= 0}
                             className={`w-full py-2 px-4 rounded-md font-medium transition-colors ${
                               remainingStock <= 0
@@ -344,7 +350,7 @@ const CartPage = ({
                               {item.product.name}
                             </h4>
                             <button
-                              onClick={() => removeFromCart(cart, item.product.id)}
+                              onClick={() => handleRemoveFromCart(item.product.id)}
                               className="text-gray-400 hover:text-red-500 ml-2"
                             >
                               <CloseIcon />
@@ -354,7 +360,7 @@ const CartPage = ({
                             <div className="flex items-center">
                               <button
                                 onClick={() =>
-                                  updateQuantity(cart, products, item.product.id, item.quantity - 1)
+                                  handleUpdateQuantity(products, item.product.id, item.quantity - 1)
                                 }
                                 className="w-6 h-6 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100"
                               >
@@ -365,7 +371,7 @@ const CartPage = ({
                               </span>
                               <button
                                 onClick={() =>
-                                  updateQuantity(cart, products, item.product.id, item.quantity + 1)
+                                  handleUpdateQuantity(products, item.product.id, item.quantity + 1)
                                 }
                                 className="w-6 h-6 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100"
                               >
@@ -403,7 +409,7 @@ const CartPage = ({
                         value={selectedCoupon?.code || ''}
                         onChange={(e) => {
                           const coupon = coupons.find((c) => c.code === e.target.value);
-                          if (coupon) applyCoupon(cart, selectedCoupon, coupon);
+                          if (coupon) handleApplyCoupon(coupon);
                           else onSelectedCoupon(null);
                         }}
                       >
