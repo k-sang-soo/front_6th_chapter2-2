@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { Dispatch, SetStateAction, useState } from 'react';
 
-export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => void] {
+export function useLocalStorage<T>(key: string, initialValue: T): [T, Dispatch<SetStateAction<T>>] {
   const [storageValue, setStorageValue] = useState<T>(() => {
     const saved = localStorage.getItem(key);
     if (saved) {
@@ -13,9 +13,11 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T)
     return initialValue;
   });
 
-  const setValue = (value: T) => {
+  const setValue: Dispatch<SetStateAction<T>> = (value) => {
     try {
-      setStorageValue(value);
+      const newValue =
+        typeof value === 'function' ? (value as (prevState: T) => T)(storageValue) : value;
+      setStorageValue(newValue);
       if (value === null || value === undefined || (Array.isArray(value) && value.length === 0)) {
         return localStorage.removeItem(key);
       }
